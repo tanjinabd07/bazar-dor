@@ -25,6 +25,10 @@ function NavbarContent() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // সাইন ইন / সাইন আপ পেজ সক্রিয় কি না
+  const isSignInActive = pathname === "/sign-in";
+  const isSignUpActive = pathname === "/sign-up";
+
   // Dropdown-er baire click korle menu close hobe
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -143,7 +147,12 @@ function NavbarContent() {
                 {/* SIGN IN */}
                 <Link
                   href="/sign-in"
-                  className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+                  aria-current={isSignInActive ? "page" : undefined}
+                  className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+                    isSignInActive
+                      ? "bg-green-600 text-white shadow-sm hover:bg-green-700"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
                 >
                   সাইন ইন
                 </Link>
@@ -151,7 +160,12 @@ function NavbarContent() {
                 {/* SIGN UP */}
                 <Link
                   href="/sign-up"
-                  className="rounded-md bg-green-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700"
+                  aria-current={isSignUpActive ? "page" : undefined}
+                  className={`rounded-md px-5 py-2 text-sm font-medium transition ${
+                    isSignInActive
+                      ? "text-gray-700 hover:bg-gray-100"
+                      : "bg-green-600 text-white shadow-sm hover:bg-green-700"
+                  }`}
                 >
                   সাইন আপ
                 </Link>
