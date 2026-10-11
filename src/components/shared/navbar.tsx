@@ -1,10 +1,9 @@
-
 "use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useState, useRef, useEffect } from "react";
+import { Suspense, useState, useRef, useEffect } from "react";
 
 const categories = [
   { name: "চাল", icon: "🍚", href: "/category/rice" },
@@ -17,7 +16,8 @@ const categories = [
   { name: "মসলা", icon: "🫚", href: "/category/spices" },
 ];
 
-export default function Navbar() {
+// Main Navbar Component
+function NavbarContent() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -66,12 +66,8 @@ export default function Navbar() {
             </div>
 
             <div className="leading-tight">
-              <h1 className="text-[18px] font-bold text-gray-800">
-                বাজার দর
-              </h1>
-              <p className="text-[9px] text-gray-500">
-                তাজা খবর, সঠিক দাম
-              </p>
+              <h1 className="text-[18px] font-bold text-gray-800">বাজার দর</h1>
+              <p className="text-[9px] text-gray-500">তাজা খবর, সঠিক দাম</p>
             </div>
           </Link>
 
@@ -87,13 +83,13 @@ export default function Navbar() {
                       setIsOpen(false);
                       router.back();
                     } else {
-                      setIsOpen(!isOpen);
+                      setIsOpen((prev) => !prev);
                     }
                   }}
                   className="flex items-center gap-2 rounded-full px-3 py-1.5 transition hover:bg-gray-100 focus:outline-none"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-700 text-sm font-bold uppercase text-white">
-                    {user.name.charAt(0)}
+                    {user.name?.charAt(0) || "U"}
                   </div>
 
                   <span className="text-sm font-medium text-gray-800">
@@ -170,7 +166,6 @@ export default function Navbar() {
         <div className="mx-auto max-w-[1440px] overflow-x-auto px-5 md:px-8">
           <nav className="flex min-w-max items-center justify-center gap-2 py-2">
             {categories.map((category) => {
-              // Current category active kina check korbe
               const isActive =
                 pathname === category.href ||
                 pathname.startsWith(`${category.href}/`);
@@ -195,5 +190,21 @@ export default function Navbar() {
         </div>
       </div>
     </header>
+  );
+}
+
+// Suspense Boundary
+export default function Navbar() {
+  return (
+    <Suspense
+      fallback={
+        <header className="sticky top-0 z-50 w-full bg-white shadow-sm">
+          <div className="h-[68px] border-b border-gray-100" />
+          <div className="h-12 border-b border-gray-100" />
+        </header>
+      }
+    >
+      <NavbarContent />
+    </Suspense>
   );
 }
