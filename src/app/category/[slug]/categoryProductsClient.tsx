@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+
 interface Product {
   id: number;
   slug: string;
@@ -79,7 +79,7 @@ export default function CategoryProductsClient({
         );
 
         if (!response.ok) {
-          throw new Error("পণ্য লোড করা যায়নি");
+          throw new Error("পণ্য লোড করা যায়নি");
         }
 
         const result = await response.json();
@@ -113,10 +113,10 @@ export default function CategoryProductsClient({
           setProducts(filteredProducts);
         }
       } catch (err) {
-        console.error("পণ্য লোড করতে সমস্যা হয়েছে:", err);
+        console.error("পণ্য লোড করতে সমস্যা হয়েছে:", err);
 
         if (!cancelled) {
-          setError("পণ্য লোড করা যায়নি। আবার চেষ্টা করো।");
+          setError("পণ্য লোড করা যায়নি। আবার চেষ্টা করো।");
         }
       } finally {
         if (!cancelled) {
@@ -161,7 +161,7 @@ export default function CategoryProductsClient({
         {products.length === 0 ? (
           <div className="rounded-2xl border border-gray-200 bg-white py-12 text-center">
             <p className="text-gray-600">
-              এই ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।
+              এই ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।
             </p>
           </div>
         ) : (
@@ -188,7 +188,8 @@ export default function CategoryProductsClient({
                   <div className="flex items-center gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-2xl">
                       {item.image?.startsWith("http") ? (
-                        <Image
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
                           src={item.image}
                           alt={item.nameBn}
                           className="h-full w-full rounded-xl object-contain"
