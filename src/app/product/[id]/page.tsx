@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -32,9 +31,6 @@ interface Product {
 }
 
 export default function ProductDetailsPage() {
-  const params = useParams<{ id: string }>();
-  const productId = params.id;
-
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,11 +39,19 @@ export default function ProductDetailsPage() {
     const controller = new AbortController();
 
     async function fetchProduct() {
-      setLoading(true);
-      setError("");
-      setProduct(null);
-
       try {
+        // URL থেকে product ID নেওয়া হচ্ছে
+        const pathname = window.location.pathname;
+        const productId = pathname.split("/").filter(Boolean).pop();
+
+        if (!productId || !/^\d+$/.test(productId)) {
+          throw new Error("পণ্যের ID সঠিক নয়।");
+        }
+
+        setLoading(true);
+        setError("");
+        setProduct(null);
+
         const response = await fetch(
           `https://openapi.programming-hero.com/api/bazardor/products/${productId}`,
           { signal: controller.signal }
@@ -58,13 +62,11 @@ export default function ProductDetailsPage() {
         }
 
         const result = await response.json();
-
-        // API response থেকে product বের করা
         const data = result?.data;
 
         const candidate = Array.isArray(data)
           ? data.find(
-              (item: Product) => String(item.id) === String(productId)
+              (item: Product) => String(item.id) === productId
             )
           : data?.product ?? data ?? result?.product ?? result;
 
@@ -72,7 +74,7 @@ export default function ProductDetailsPage() {
           !candidate ||
           typeof candidate !== "object" ||
           Array.isArray(candidate) ||
-          String(candidate.id) !== String(productId)
+          String(candidate.id) !== productId
         ) {
           throw new Error("এই ID-এর পণ্য পাওয়া যায়নি।");
         }
@@ -95,12 +97,10 @@ export default function ProductDetailsPage() {
       }
     }
 
-    if (productId) {
-      fetchProduct();
-    }
+    fetchProduct();
 
     return () => controller.abort();
-  }, [productId]);
+  }, []);
 
   if (loading) {
     return (
@@ -133,7 +133,6 @@ export default function ProductDetailsPage() {
   return (
     <main className="min-h-screen bg-[#F8FAF9] px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl space-y-6">
-
         {/* Breadcrumb */}
         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 sm:text-sm">
           <Link href="/" className="hover:text-green-600">
@@ -201,9 +200,7 @@ export default function ProductDetailsPage() {
                       : "bg-gray-100 text-gray-600"
                 }`}
               >
-                <span>
-                  {isUp ? "▲" : isDown ? "▼" : "—"}
-                </span>
+                <span>{isUp ? "▲" : isDown ? "▼" : "—"}</span>
 
                 <span>
                   {isUp ? "+" : isDown ? "-" : ""}
@@ -221,7 +218,6 @@ export default function ProductDetailsPage() {
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-
             {/* Today's Price */}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <p className="mb-1 text-xs text-gray-500">
@@ -335,7 +331,6 @@ export default function ProductDetailsPage() {
             ← সব পণ্য দেখো
           </Link>
         </div>
-
       </div>
     </main>
   );
