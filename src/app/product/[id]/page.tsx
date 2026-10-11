@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -32,12 +33,15 @@ interface Product {
 
 export default function ProductDetailsPage() {
   const params = useParams<{ id: string }>();
+  const productId = params.id;
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function fetchProduct() {
       setLoading(true);
       setError("");
@@ -45,49 +49,58 @@ export default function ProductDetailsPage() {
 
       try {
         const response = await fetch(
-          `https://openapi.programming-hero.com/api/bazardor/products/${params.id}`,
+          `https://openapi.programming-hero.com/api/bazardor/products/${productId}`,
+          { signal: controller.signal }
         );
 
         if (!response.ok) {
-          throw new Error("পণ্য লোড করা যায়নি");
+          throw new Error("পণ্যের তথ্য লোড করা যায়নি।");
         }
 
         const result = await response.json();
 
-        // API response-এ পণ্যটি কোথায় আছে, তা শনাক্ত করা
-        const possibleProduct =
-          result?.data?.product ?? result?.data ?? result?.product ?? result;
+        // API response থেকে product বের করা
+        const data = result?.data;
 
-        // Response object-এ সরাসরি product থাকলে সেটি নাও
-        const selectedProduct =
-          possibleProduct &&
-          !Array.isArray(possibleProduct) &&
-          String(possibleProduct.id) === params.id
-            ? possibleProduct
-            : null;
+        const candidate = Array.isArray(data)
+          ? data.find(
+              (item: Product) => String(item.id) === String(productId)
+            )
+          : data?.product ?? data ?? result?.product ?? result;
 
-        if (!selectedProduct) {
-          console.error("Unexpected API response:", result);
-          throw new Error("পণ্যের তথ্য পাওয়া যায়নি");
+        if (
+          !candidate ||
+          typeof candidate !== "object" ||
+          Array.isArray(candidate) ||
+          String(candidate.id) !== String(productId)
+        ) {
+          throw new Error("এই ID-এর পণ্য পাওয়া যায়নি।");
         }
 
-        setProduct(selectedProduct as Product);
+        setProduct(candidate as Product);
       } catch (err) {
-        console.error("Product fetch error:", err);
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+
         setError(
           err instanceof Error
             ? err.message
-            : "পণ্যের তথ্য লোড করতে সমস্যা হয়েছে।",
+            : "পণ্যের তথ্য লোড করতে সমস্যা হয়েছে।"
         );
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }
 
-    if (params.id) {
+    if (productId) {
       fetchProduct();
     }
-  }, [params.id]);
+
+    return () => controller.abort();
+  }, [productId]);
 
   if (loading) {
     return (
@@ -100,8 +113,14 @@ export default function ProductDetailsPage() {
   if (error || !product) {
     return (
       <main className="px-4 py-20 text-center">
-        <p className="mb-5 text-red-600">{error || "পণ্যটি পাওয়া যায়নি।"}</p>
-        <Link href="/" className="font-medium text-green-700 underline">
+        <p className="mb-5 text-red-600">
+          {error || "পণ্যটি পাওয়া যায়নি।"}
+        </p>
+
+        <Link
+          href="/"
+          className="font-medium text-green-700 underline"
+        >
           হোম পেজে ফিরে যাও
         </Link>
       </main>
@@ -114,20 +133,27 @@ export default function ProductDetailsPage() {
   return (
     <main className="min-h-screen bg-[#F8FAF9] px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl space-y-6">
+
         {/* Breadcrumb */}
         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 sm:text-sm">
           <Link href="/" className="hover:text-green-600">
             হোম
           </Link>
+
           <span>/</span>
+
           <Link
             href={`/category/${product.category}`}
             className="hover:text-green-600"
           >
             {product.categoryNameBn || "ক্যাটাগরি"}
           </Link>
+
           <span>/</span>
-          <span className="font-medium text-gray-900">{product.nameBn}</span>
+
+          <span className="font-medium text-gray-900">
+            {product.nameBn}
+          </span>
         </div>
 
         {/* Product Header */}
@@ -139,9 +165,10 @@ export default function ProductDetailsPage() {
                   <Image
                     src={product.image}
                     alt={product.nameBn}
-                    className="h-full w-full object-contain"
                     width={64}
                     height={64}
+                    className="h-full w-full object-contain"
+                    unoptimized
                   />
                 ) : (
                   product.image || product.categoryIcon || "📦"
@@ -152,14 +179,19 @@ export default function ProductDetailsPage() {
                 <h1 className="mb-1 text-2xl font-bold text-gray-900">
                   {product.nameBn}
                 </h1>
+
                 <p className="text-xs text-gray-500 sm:text-sm">
-                  প্রতি {product.unit} · ক্যাটাগরি: {product.categoryNameBn}
+                  প্রতি {product.unit} · ক্যাটাগরি:{" "}
+                  {product.categoryNameBn}
                 </p>
               </div>
             </div>
 
             <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 sm:text-right">
-              <p className="mb-1 text-[11px] text-gray-400">বাজারের ভাব</p>
+              <p className="mb-1 text-[11px] text-gray-400">
+                বাজারের ভাব
+              </p>
+
               <div
                 className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
                   isUp
@@ -169,7 +201,10 @@ export default function ProductDetailsPage() {
                       : "bg-gray-100 text-gray-600"
                 }`}
               >
-                <span>{isUp ? "▲" : isDown ? "▼" : "—"}</span>
+                <span>
+                  {isUp ? "▲" : isDown ? "▼" : "—"}
+                </span>
+
                 <span>
                   {isUp ? "+" : isDown ? "-" : ""}
                   {product.change?.pct ?? 0}%
@@ -186,30 +221,41 @@ export default function ProductDetailsPage() {
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+            {/* Today's Price */}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <p className="mb-1 text-xs text-gray-500">আজকের দাম</p>
+              <p className="mb-1 text-xs text-gray-500">
+                আজকের দাম
+              </p>
+
               <p className="text-xl font-bold text-gray-900">
                 ৳{product.today}
                 <span className="text-xs font-normal text-gray-500">
-                  {" "}
-                  / {product.unit}
+                  {" "}/ {product.unit}
                 </span>
               </p>
             </div>
 
+            {/* Yesterday's Price */}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <p className="mb-1 text-xs text-gray-500">গতকালের দাম</p>
+              <p className="mb-1 text-xs text-gray-500">
+                গতকালের দাম
+              </p>
+
               <p className="text-xl font-bold text-gray-900">
                 ৳{product.yesterday}
                 <span className="text-xs font-normal text-gray-500">
-                  {" "}
-                  / {product.unit}
+                  {" "}/ {product.unit}
                 </span>
               </p>
             </div>
 
+            {/* Price Change */}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <p className="mb-1 text-xs text-gray-500">দামের পরিবর্তন</p>
+              <p className="mb-1 text-xs text-gray-500">
+                দামের পরিবর্তন
+              </p>
+
               <p
                 className={`text-lg font-bold ${
                   isUp
@@ -246,6 +292,7 @@ export default function ProductDetailsPage() {
                     <th className="px-4 py-3">সর্বোচ্চ (৳)</th>
                   </tr>
                 </thead>
+
                 <tbody className="divide-y divide-gray-50 text-sm text-gray-700">
                   {product.markets.map((market, index) => (
                     <tr
@@ -255,12 +302,15 @@ export default function ProductDetailsPage() {
                       <td className="px-4 py-3.5 font-medium text-gray-900">
                         {market.market}
                       </td>
+
                       <td className="px-4 py-3.5 text-gray-500">
                         {market.division}
                       </td>
+
                       <td className="px-4 py-3.5 font-semibold">
                         ৳{market.min}
                       </td>
+
                       <td className="px-4 py-3.5 font-semibold">
                         ৳{market.max}
                       </td>
@@ -285,6 +335,7 @@ export default function ProductDetailsPage() {
             ← সব পণ্য দেখো
           </Link>
         </div>
+
       </div>
     </main>
   );
